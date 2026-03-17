@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experimento 3 — Mecânica dos Fluidos</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#070d14; --surface:#0d1825; --surface2:#122030;
+  --border:#1e3a52; --accent:#00c8ff; --accent2:#00ff9d;
+  --text:#e8f4fc; --muted:#4a6a7f; --danger:#ff4757;
+  --green-bg:#111f18; --green-bd:#1f5038;
+  --mono:'Space Mono',monospace; --ui:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 50px,rgba(0,200,255,.018) 50px,rgba(0,200,255,.018) 51px),
+  repeating-linear-gradient(90deg,transparent,transparent 50px,rgba(0,200,255,.018) 50px,rgba(0,200,255,.018) 51px);
+  pointer-events:none;z-index:0}
+.screen{display:none;min-height:100vh;position:relative;z-index:1;flex-direction:column}
+.screen.active{display:flex}
+
+/* ===== BUTTONS ===== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.7rem 1.4rem;border:none;border-radius:8px;font-family:var(--ui);font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.04em;text-decoration:none;white-space:nowrap}
+.btn-primary{background:var(--accent);color:var(--bg)}
+.btn-primary:hover{background:#33d4ff;box-shadow:0 0 24px rgba(0,200,255,.45);transform:translateY(-1px)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-success{background:var(--accent2);color:var(--bg)}
+.btn-success:hover{background:#33ffb3;box-shadow:0 0 20px rgba(0,255,157,.4);transform:translateY(-1px)}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger);padding:.35rem .75rem;font-size:.78rem}
+.btn-danger:hover{background:rgba(255,71,87,.12)}
+.btn-sm{padding:.38rem .75rem;font-size:.78rem}
+
+/* ===== LOGIN ===== */
+#screen-login{align-items:center;justify-content:center;padding:2rem}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:2.8rem 2.4rem;width:100%;max-width:400px;position:relative;box-shadow:0 0 80px rgba(0,200,255,.07),0 0 160px rgba(0,200,255,.03)}
+.login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:18px 18px 0 0}
+.login-avatar-wrap{text-align:center;margin-bottom:1.8rem}
+.login-avatar{width:148px;height:148px;border-radius:50%;border:2px solid var(--accent);box-shadow:0 0 32px rgba(0,200,255,.4);object-fit:cover}
+.login-tag{font-family:var(--mono);font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin-top:.8rem}
+.login-name{font-size:1.5rem;font-weight:800;margin-top:.2rem}
+.form-label{display:block;font-family:var(--mono);font-size:.67rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem}
+.form-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:.9rem;padding:.7rem 1rem;border-radius:8px;outline:none;transition:border-color .2s,box-shadow .2s}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,200,255,.12)}
+textarea.form-input{resize:vertical;min-height:90px;font-family:var(--ui);font-size:.88rem}
+.form-group{margin-bottom:1.1rem}
+.error-box{background:rgba(255,71,87,.1);border:1px solid var(--danger);border-radius:8px;padding:.7rem 1rem;font-family:var(--mono);font-size:.78rem;color:var(--danger);margin-bottom:1rem;display:none}
+.login-link-row{margin-top:1.5rem;padding-top:1.4rem;border-top:1px solid var(--border);text-align:center}
+
+/* LinkedIn link */
+.li-link{display:inline-flex;align-items:center;gap:.5rem;color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:.72rem;letter-spacing:.09em;transition:color .2s}
+.li-link:hover{color:#33d4ff}
+.li-link svg{flex-shrink:0}
+
+/* ===== APP SHELL ===== */
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:.9rem 1.8rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.app-brand{font-family:var(--mono);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.steps{display:flex;gap:.45rem;align-items:center}
+.step{width:28px;height:5px;border-radius:3px;background:var(--border);transition:all .3s}
+.step.active{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.step.done{background:var(--accent2)}
+.app-body{flex:1;padding:2rem;max-width:1080px;margin:0 auto;width:100%}
+.sec-title{font-size:1.75rem;font-weight:800;margin-bottom:.35rem}
+.sec-sub{font-family:var(--mono);font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1.8rem;display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}
+.badge{display:inline-block;background:rgba(0,200,255,.1);border:1px solid rgba(0,200,255,.25);border-radius:4px;padding:.1rem .55rem;font-size:.65rem;color:var(--accent)}
+.app-footer{padding:1.2rem 1.8rem;display:flex;justify-content:flex-end;gap:.85rem;border-top:1px solid var(--border);background:var(--surface)}
+
+/* ===== MEMBERS ===== */
+.member-list{display:flex;flex-direction:column;gap:.65rem;margin-bottom:1.5rem}
+.member-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;transition:border-color .2s}
+.member-card:hover{border-color:var(--accent)}
+.m-name{font-size:.9rem;font-weight:700;margin-bottom:.18rem}
+.m-ra{font-family:var(--mono);font-size:.72rem;color:var(--accent)}
+.m-actions{display:flex;gap:.5rem;flex-shrink:0}
+.add-row{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem;display:flex;gap:.85rem;align-items:flex-end;flex-wrap:wrap}
+.add-row .form-group{margin:0;flex:1;min-width:160px}
+
+/* ===== EXPERIMENT TABLE ===== */
+.exp-grid{display:grid;grid-template-columns:1fr 270px;gap:1.4rem}
+@media(max-width:860px){.exp-grid{grid-template-columns:1fr}}
+.tbl-wrap{overflow-x:auto}
+.dtable{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.8rem}
+.dtable th{background:var(--surface2);border:1px solid var(--border);padding:.6rem .7rem;text-align:center;font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.dtable td{border:1px solid var(--border);padding:.45rem .6rem;text-align:center}
+.dtable .ec{background:var(--green-bg);border-color:var(--green-bd)}
+.dtable .cc{color:var(--muted)}
+.dtable input[type=number]{background:transparent;border:none;color:var(--accent2);font-family:var(--mono);font-size:.8rem;width:68px;text-align:center;outline:none}
+.dtable input[type=number]:focus{background:rgba(0,255,157,.05);border-radius:3px}
+.dtable .wall-row td{background:var(--surface2)}
+
+.side-panel{display:flex;flex-direction:column;gap:1rem}
+.const-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.1rem}
+.panel-title{font-family:var(--mono);font-size:.65rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);padding-bottom:.7rem;border-bottom:1px solid var(--border);margin-bottom:.8rem}
+.const-row{display:flex;align-items:center;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(30,58,82,.5);gap:.4rem}
+.const-row:last-child{border:none}
+.ck{font-family:var(--mono);font-size:.75rem;color:var(--muted);flex:1}
+.cv input{background:transparent;border:none;color:var(--accent);font-family:var(--mono);font-size:.82rem;width:72px;text-align:right;outline:none}
+.cu{font-family:var(--mono);font-size:.67rem;color:var(--muted);min-width:48px;text-align:right}
+
+.vm-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.1rem;margin-top:.3rem}
+.vm-row{display:flex;justify-content:space-between;padding:.45rem 0;border-bottom:1px solid rgba(30,58,82,.5);font-family:var(--mono);font-size:.8rem}
+.vm-row:last-child{border:none}
+.vm-lbl{color:var(--muted)}
+.vm-val{color:var(--accent2);font-weight:700}
+
+/* Formula editor */
+.formula-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:.3rem}
+.formula-hdr{padding:.8rem 1.1rem;background:var(--surface2);display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);user-select:none}
+.formula-hdr:hover{color:var(--accent)}
+.formula-bdy{padding:1.1rem;display:none}
+.formula-bdy.open{display:block}
+.fi{margin-bottom:.9rem}
+.fi:last-child{margin:0}
+.fi label{display:block;font-family:var(--mono);font-size:.65rem;color:var(--muted);margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.1em}
+.fi input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--accent2);font-family:var(--mono);font-size:.8rem;padding:.55rem .85rem;border-radius:6px;outline:none;transition:border-color .2s}
+.fi input:focus{border-color:var(--accent2);box-shadow:0 0 0 2px rgba(0,255,157,.08)}
+.fi .hint{font-family:var(--mono);font-size:.63rem;color:var(--muted);margin-top:.3rem;line-height:1.5}
+
+/* ===== CONCLUSION / GRAPH ===== */
+.toggle-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:1.2rem;overflow:hidden}
+.toggle-hdr{padding:1.1rem 1.3rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.tl-label{font-size:.95rem;font-weight:700}
+.tl-sub{font-family:var(--mono);font-size:.68rem;color:var(--muted);margin-top:.18rem}
+.tl-switch{position:relative;width:50px;height:26px;flex-shrink:0}
+.tl-switch input{display:none}
+.tl-slider{position:absolute;inset:0;background:var(--border);border-radius:13px;cursor:pointer;transition:.3s}
+.tl-slider::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:.3s}
+.tl-switch input:checked+.tl-slider{background:rgba(0,200,255,.18);border:1px solid var(--accent)}
+.tl-switch input:checked+.tl-slider::after{transform:translateX(24px);background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.toggle-body{padding:0 1.3rem 1.3rem;border-top:1px solid var(--border);display:none}
+.toggle-body.open{display:block}
+
+.conc-list{display:flex;flex-direction:column;gap:.6rem;margin-bottom:.85rem}
+.conc-item{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem}
+.conc-text{font-size:.88rem;line-height:1.65;margin-bottom:.55rem}
+.conc-acts{display:flex;gap:.45rem}
+
+.graph-opts{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.9rem}
+@media(max-width:560px){.graph-opts{grid-template-columns:1fr}}
+.form-select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:.82rem;padding:.62rem .9rem;border-radius:8px;outline:none;cursor:pointer;transition:border-color .2s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%234a6a7f' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:2.2rem}
+.form-select:focus{border-color:var(--accent)}
+.chart-wrap{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-top:.85rem;min-height:220px;display:flex;align-items:center;justify-content:center;position:relative}
+.chart-empty{font-family:var(--mono);font-size:.75rem;color:var(--muted);text-align:center}
+
+/* ===== REVIEW ===== */
+.rev-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:1.2rem;overflow:hidden}
+.rev-hdr{background:var(--surface2);padding:.85rem 1.2rem;display:flex;align-items:center;justify-content:space-between}
+.rev-ttl{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--accent)}
+.rev-body{padding:1.2rem}
+
+/* ===== DOWNLOAD ===== */
+#screen-download{align-items:center;justify-content:center;padding:2rem}
+.dl-wrap{max-width:560px;width:100%;text-align:center}
+.dl-tag{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:.9rem}
+.dl-title{font-size:2.2rem;font-weight:800;line-height:1.15;margin-bottom:.45rem}
+.dl-sub{font-family:var(--mono);font-size:.75rem;color:var(--muted);margin-bottom:2.5rem}
+.dl-cards{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:2.8rem}
+@media(max-width:440px){.dl-cards{grid-template-columns:1fr}}
+.dl-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:2rem 1.4rem;cursor:pointer;transition:all .3s;display:flex;flex-direction:column;align-items:center;gap:.9rem}
+.dl-card:hover{border-color:var(--accent);box-shadow:0 0 32px rgba(0,200,255,.12);transform:translateY(-3px)}
+.dl-icon{font-size:2.8rem}
+.dl-lbl{font-weight:800;font-size:1rem}
+.dl-s{font-family:var(--mono);font-size:.68rem;color:var(--muted)}
+.dl-footer{padding-top:2rem;border-top:1px solid var(--border)}
+.dl-footer p{font-family:var(--mono);font-size:.67rem;color:var(--muted);margin-bottom:.65rem;text-transform:uppercase;letter-spacing:.1em}
+
+/* ===== NOTIFICATION ===== */
+.notif{position:fixed;bottom:1.8rem;right:1.8rem;background:var(--surface);border:1px solid var(--accent2);border-radius:10px;padding:.65rem 1.15rem;font-family:var(--mono);font-size:.78rem;color:var(--accent2);z-index:9999;display:none;box-shadow:0 0 20px rgba(0,255,157,.2)}
+@keyframes popIn{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ===== MISC ===== */
+.empty-msg{font-family:var(--mono);font-size:.78rem;color:var(--muted);text-align:center;padding:2rem}
+.review-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.78rem}
+.review-table th{background:var(--surface2);border:1px solid var(--border);padding:.55rem .7rem;text-align:center;font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.review-table td{border:1px solid var(--border);padding:.42rem .6rem;text-align:center}
+.review-table .wall-row td{background:var(--surface2)}
+.vm-display{margin-top:1rem;display:flex;gap:2rem;flex-wrap:wrap;font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.vm-display span{color:var(--accent2)}
+</style>
+</head>
+<body>
+
+<!-- =================== SCREEN 1: LOGIN =================== -->
+<div id="screen-login" class="screen active">
+  <div class="login-card">
+    <div class="login-avatar-wrap">
+      <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExdGQwbmlkMGdxc2c2MnVndzdoNWc2Yjh6ZXZ3emYyYXU5bnVlZWxnZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/YOjolQcNMMz2EhgZw4/giphy.gif"
+           class="login-avatar" alt="avatar" crossorigin="anonymous">
+      <div class="login-name">principe</div>
+    </div>
+    <div id="login-err" class="error-box">Senha incorreta.</div>
+    <div class="form-group">
+      <label class="form-label">Senha</label>
+      <input id="lp" type="password" class="form-input" placeholder="••••">
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Entrar →</button>
+    <div class="login-link-row">
+      <a href="https://www.linkedin.com/in/rflmendes" target="_blank" class="li-link">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+        LinkedIn do criador
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- =================== SCREEN 2: MEMBERS =================== -->
+<div id="screen-members" class="screen">
+  <div class="app-header">
+    <div class="app-brand">Experimento 3 — MecFlu</div>
+    <div class="steps">
+      <div class="step active" id="s1"></div>
+      <div class="step" id="s2"></div>
+      <div class="step" id="s3"></div>
+      <div class="step" id="s4"></div>
+      <div class="step" id="s5"></div>
+    </div>
+  </div>
+  <div class="app-body">
+    <div class="sec-title">Integrantes do Grupo</div>
+    <div class="sec-sub">Passo 1 de 5 — Identificação</div>
+    <div class="member-list" id="member-list"></div>
+    <div class="add-row">
+      <div class="form-group"><label class="form-label">Nome</label>
+        <input id="nm-name" type="text" class="form-input" placeholder="Nome completo"></div>
+      <div class="form-group"><label class="form-label">RA</label>
+        <input id="nm-ra" type="text" class="form-input" placeholder="00.000.000-0"></div>
+      <button class="btn btn-success" onclick="addMember()">+ Adicionar</button>
+    </div>
+  </div>
+  <div class="app-footer">
+    <button class="btn btn-primary" onclick="go('experiment')">Próximo →</button>
+  </div>
+</div>
+
+<!-- =================== SCREEN 3: EXPERIMENT =================== -->
+<div id="screen-experiment" class="screen">
+  <div class="app-header">
+    <div class="app-brand">Experimento 3 — MecFlu</div>
+    <div class="steps">
+      <div class="step done"></div><div class="step active"></div>
+      <div class="step"></div><div class="step"></div><div class="step"></div>
+    </div>
+  </div>
+  <div class="app-body">
+    <div class="sec-title">Tabela do Experimento</div>
+    <div class="sec-sub">
+      Passo 2 de 5 — Dados Medidos
+      <span class="badge">🟢 células verdes = editáveis</span>
+    </div>
+    <div class="exp-grid">
+      <!-- LEFT: table -->
+      <div>
+        <div class="tbl-wrap">
+          <table class="dtable">
+            <thead>
+              <tr>
+                <th>Ensaio</th><th>Posição</th>
+                <th>r (mm)</th><th>h (mm)</th>
+                <th>√h (m^½)</th><th>v (m/s)</th>
+              </tr>
+            </thead>
+            <tbody id="exp-tbody"></tbody>
+          </table>
+        </div>
+        <div class="vm-panel">
+          <div class="vm-row"><span class="vm-lbl">V<sub>m</sub> calculada</span><span class="vm-val" id="vm-calc">—</span></div>
+          <div class="vm-row"><span class="vm-lbl">V<sub>m</sub> vazão</span><span class="vm-val" id="vm-vazao">—</span></div>
+        </div>
+        <div class="formula-box">
+          <div class="formula-hdr" onclick="toggleFormula()">
+            <span>⚙ Editor de Fórmulas</span><span id="f-arrow">▸</span>
+          </div>
+          <div class="formula-bdy" id="f-body">
+            <div class="fi">
+              <label>√h</label>
+              <input id="f-sqrth" type="text" value="Math.sqrt(h)" oninput="recalc()">
+              <div class="hint">Variáveis: h, K, Q, D_tubo, A_pipe</div>
+            </div>
+            <div class="fi">
+              <label>v (m/s)</label>
+              <input id="f-v" type="text" value="K * sqrtH" oninput="recalc()">
+              <div class="hint">Variáveis: h, sqrtH, K, Q, A_pipe</div>
+            </div>
+            <div class="fi">
+              <label>V<sub>m</sub> calculada</label>
+              <input id="f-vmcalc" type="text" value="(49/60) * v_ensaio4" readonly style="opacity:.5;cursor:not-allowed">
+              <div class="hint">Fixo: (49/60) × v do ensaio 4 (posição c)</div>
+            </div>
+            <div class="fi">
+              <label>V<sub>m</sub> vazão</label>
+              <input id="f-vmvaz" type="text" value="(Q * 4) / (π × D²)" readonly style="opacity:.5;cursor:not-allowed">
+              <div class="hint">Fixo: Q = (Δh × A_tanque) / t &nbsp;|&nbsp; Vm = (Q×4)/(π×D²)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- RIGHT: constants -->
+      <div class="side-panel">
+        <div class="const-panel">
+          <div class="panel-title">Constantes</div>
+          <div class="const-row"><span class="ck">Q <small style="color:var(--accent2);font-size:.58rem">(auto)</small></span><span class="cv"><input id="c-Q" type="number" value="0.002791" step="0.000001" readonly style="color:var(--accent2);opacity:.75;cursor:not-allowed"></span><span class="cu">m³/s</span></div>
+          <div class="const-row"><span class="ck">K</span><span class="cv"><input id="c-K" type="number" value="4.427189" step="0.0001" oninput="recalc()"></span><span class="cu">const.</span></div>
+          <div class="const-row"><span class="ck">A<sub>tanque</sub></span><span class="cv"><input id="c-At" type="number" value="0.546" step="0.001" oninput="recalc()"></span><span class="cu">m²</span></div>
+          <div class="const-row"><span class="ck">t</span><span class="cv"><input id="c-t" type="number" value="19.56" step="0.01" oninput="recalc()"></span><span class="cu">s</span></div>
+          <div class="const-row"><span class="ck">Δh</span><span class="cv"><input id="c-dh" type="number" value="0.1" step="0.01" oninput="recalc()"></span><span class="cu">m</span></div>
+          <div class="const-row"><span class="ck">D<sub>tubo</sub></span><span class="cv"><input id="c-D" type="number" value="41" step="0.1" oninput="recalc()"></span><span class="cu">mm</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="app-footer">
+    <button class="btn btn-secondary" onclick="go('members')">← Voltar</button>
+    <button class="btn btn-primary" onclick="go('conclusion')">Próximo →</button>
+  </div>
+</div>
+
+<!-- =================== SCREEN 4: CONCLUSION & GRAPH =================== -->
+<div id="screen-conclusion" class="screen">
+  <div class="app-header">
+    <div class="app-brand">Experimento 3 — MecFlu</div>
+    <div class="steps">
+      <div class="step done"></div><div class="step done"></div>
+      <div class="step active"></div><div class="step"></div><div class="step"></div>
+    </div>
+  </div>
+  <div class="app-body">
+    <div class="sec-title">Conclusão & Gráfico</div>
+    <div class="sec-sub">Passo 3 de 5 — Análise e Visualização</div>
+
+    <!-- CONCLUSION -->
+    <div class="toggle-card">
+      <div class="toggle-hdr">
+        <div><div class="tl-label">Conclusão</div><div class="tl-sub">Adicionar texto de conclusão ao relatório</div></div>
+        <label class="tl-switch">
+          <input type="checkbox" id="sw-conc" onchange="togglePane('conc-body',this)">
+          <span class="tl-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-body" id="conc-body">
+        <div class="conc-list" id="conc-list"></div>
+        <textarea id="conc-input" class="form-input" placeholder="Digite o texto da conclusão aqui..."></textarea>
+        <div style="display:flex;gap:.5rem;margin-top:.7rem">
+          <button class="btn btn-success btn-sm" onclick="addConc()">+ Adicionar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRAPH -->
+    <div class="toggle-card">
+      <div class="toggle-hdr">
+        <div><div class="tl-label">Gráfico</div><div class="tl-sub">Gerar gráfico a partir dos dados do experimento</div></div>
+        <label class="tl-switch">
+          <input type="checkbox" id="sw-graph" onchange="togglePane('graph-body',this);if(this.checked)setTimeout(updatePreviewChart,80)">
+          <span class="tl-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-body" id="graph-body">
+        <div class="graph-opts">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Eixo X</label>
+            <select id="g-x" class="form-select" onchange="updatePreviewChart()">
+              <option value="r">r (mm)</option>
+              <option value="h">h (mm)</option>
+              <option value="sqrtH">√h (m^½)</option>
+              <option value="v">v (m/s)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Eixo Y</label>
+            <select id="g-y" class="form-select" onchange="updatePreviewChart()">
+              <option value="v">v (m/s)</option>
+              <option value="h">h (mm)</option>
+              <option value="sqrtH">√h (m^½)</option>
+              <option value="r">r (mm)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Título do Gráfico</label>
+            <input id="g-title" type="text" class="form-input" value="Perfil de Velocidade" oninput="updatePreviewChart()">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Unidades (ex: mm × m/s)</label>
+            <input id="g-units" type="text" class="form-input" placeholder="r(mm) × v(m/s)" oninput="updatePreviewChart()">
+          </div>
+        </div>
+        <div class="chart-wrap" id="chart-wrap-prev">
+          <span class="chart-empty" id="chart-empty-msg">Insira dados na tabela para visualizar o gráfico.</span>
+          <canvas id="cv-prev" style="display:none;max-height:260px"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="app-footer">
+    <button class="btn btn-secondary" onclick="go('experiment')">← Voltar</button>
+    <button class="btn btn-primary" onclick="go('review')">Próximo →</button>
+  </div>
+</div>
+
+<!-- =================== SCREEN 5: REVIEW =================== -->
+<div id="screen-review" class="screen">
+  <div class="app-header">
+    <div class="app-brand">Experimento 3 — MecFlu</div>
+    <div class="steps">
+      <div class="step done"></div><div class="step done"></div>
+      <div class="step done"></div><div class="step active"></div><div class="step"></div>
+    </div>
+  </div>
+  <div class="app-body">
+    <div class="sec-title">Revisão Final</div>
+    <div class="sec-sub">Passo 4 de 5 — Confirme antes de exportar</div>
+
+    <div class="rev-card">
+      <div class="rev-hdr"><span class="rev-ttl">👥 Integrantes</span>
+        <button class="btn btn-secondary btn-sm" onclick="go('members')">Editar</button></div>
+      <div class="rev-body" id="rev-members"></div>
+    </div>
+
+    <div class="rev-card">
+      <div class="rev-hdr"><span class="rev-ttl">📊 Tabela do Experimento</span>
+        <button class="btn btn-secondary btn-sm" onclick="go('experiment')">Editar</button></div>
+      <div class="rev-body" style="overflow-x:auto" id="rev-table"></div>
+    </div>
+
+    <div class="rev-card" id="rev-conc-card" style="display:none">
+      <div class="rev-hdr"><span class="rev-ttl">📝 Conclusão</span>
+        <button class="btn btn-secondary btn-sm" onclick="go('conclusion')">Editar</button></div>
+      <div class="rev-body" id="rev-conc"></div>
+    </div>
+
+    <div class="rev-card" id="rev-graph-card" style="display:none">
+      <div class="rev-hdr"><span class="rev-ttl">📈 Gráfico</span>
+        <button class="btn btn-secondary btn-sm" onclick="go('conclusion')">Editar</button></div>
+      <div class="rev-body">
+        <div style="max-height:300px;display:flex;justify-content:center">
+          <canvas id="cv-review" style="max-height:280px"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="app-footer">
+    <button class="btn btn-secondary" onclick="go('conclusion')">← Voltar</button>
+    <button class="btn btn-primary" onclick="go('download')">Gerar Relatório →</button>
+  </div>
+</div>
+
+<!-- =================== SCREEN 6: DOWNLOAD =================== -->
+<div id="screen-download" class="screen">
+  <div class="dl-wrap">
+    <div class="dl-tag">✓ Relatório Pronto</div>
+    <div class="dl-title">Experimento 3<br>Mecânica dos Fluidos</div>
+    <div class="dl-sub">Selecione o formato de exportação</div>
+    <div class="dl-cards">
+      <div class="dl-card" onclick="downloadPDF()">
+        <div class="dl-icon">📄</div>
+        <div class="dl-lbl">PDF</div>
+        <div class="dl-s">Relatório completo</div>
+      </div>
+      <div class="dl-card" onclick="downloadExcel()">
+        <div class="dl-icon">📊</div>
+        <div class="dl-lbl">Excel</div>
+        <div class="dl-s">Planilha de dados</div>
+      </div>
+    </div>
+    <div class="dl-footer">
+      <p>Desenvolvido por</p>
+      <a href="https://www.linkedin.com/in/rflmendes" target="_blank" class="li-link" style="font-size:.9rem;gap:.7rem">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+        criador desse projeto
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Notification -->
+<div class="notif" id="notif"></div>
+
+<script>
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+const S = {
+  members: [
+    {name:'Rafael Magnabosco Leal',      ra:'11.124.084-2'},
+    {name:'Lorenzo Cruz Piantieri',       ra:'11.121.542-2'},
+    {name:'Rafael Atori Andrade Biancardi',ra:'11.224.016-3'},
+    {name:'Felipe Kenzo Pesatori Kajita', ra:'11.224.029-6'},
+    {name:'Santiago Gonzalez Prayon',     ra:'11.124.237-6'},
+    {name:'Rafael Mendes Herculano',      ra:'11.123.378-9'},
+  ],
+  rows:[
+    {ensaio:1,pos:'parede',r:'',h:''},
+    {ensaio:2,pos:'a',     r:'',h:''},
+    {ensaio:3,pos:'b',     r:'',h:''},
+    {ensaio:4,pos:'c',     r:'',h:''},
+    {ensaio:5,pos:'d',     r:'',h:''},
+    {ensaio:6,pos:'e',     r:'',h:''},
+    {ensaio:7,pos:'parede',r:'',h:''},
+  ],
+  conclusions:[],
+  inclConc: false,
+  inclGraph:false,
+  gX:'r', gY:'v', gTitle:'Perfil de Velocidade', gUnits:'',
+};
+
+let chartPrev = null, chartRev = null;
+
+// Chart.js defaults (dark theme)
+Chart.defaults.color = '#4a6a7f';
+Chart.defaults.borderColor = '#1e3a52';
+
+// ============================================================
+// LOGIN
+// ============================================================
+function doLogin(){
+  const p=document.getElementById('lp').value.trim();
+  const e=document.getElementById('login-err');
+  if(p==='1234'){e.style.display='none';go('members');}
+  else{e.style.display='block';}
+}
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Enter'&&document.getElementById('screen-login').classList.contains('active'))doLogin();
+});
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function go(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  window.scrollTo(0,0);
+  if(name==='members')  renderMembers();
+  if(name==='experiment')renderExpTable();
+  if(name==='review')   renderReview();
+}
+
+// ============================================================
+// MEMBERS
+// ============================================================
+function renderMembers(){
+  const el=document.getElementById('member-list');
+  if(!S.members.length){el.innerHTML='<div class="empty-msg">Nenhum integrante cadastrado.</div>';return;}
+  el.innerHTML=S.members.map((m,i)=>`
+    <div class="member-card">
+      <div style="flex:1">
+        <div class="m-name">${m.name}</div>
+        <div class="m-ra">RA: ${m.ra}</div>
+      </div>
+      <div class="m-actions">
+        <button class="btn btn-secondary btn-sm" onclick="editMember(${i})">Editar</button>
+        <button class="btn btn-danger" onclick="delMember(${i})">✕</button>
+      </div>
+    </div>`).join('');
+}
+function addMember(){
+  const n=document.getElementById('nm-name').value.trim();
+  const r=document.getElementById('nm-ra').value.trim();
+  if(!n||!r){notify('Preencha nome e RA.');return;}
+  S.members.push({name:n,ra:r});
+  document.getElementById('nm-name').value='';
+  document.getElementById('nm-ra').value='';
+  renderMembers();notify('✓ Integrante adicionado!');
+}
+function delMember(i){S.members.splice(i,1);renderMembers();}
+function editMember(i){
+  const n=prompt('Nome:',S.members[i].name);if(n===null)return;
+  const r=prompt('RA:',S.members[i].ra);if(r===null)return;
+  S.members[i]={name:n.trim(),ra:r.trim()};renderMembers();
+}
+
+// ============================================================
+// EXPERIMENT TABLE
+// ============================================================
+function getConsts(){
+  const K   = parseFloat(document.getElementById('c-K')?.value)||4.427189;
+  const A_t = parseFloat(document.getElementById('c-At')?.value)||0.546;
+  const t   = parseFloat(document.getElementById('c-t')?.value)||19.56;
+  const dh  = parseFloat(document.getElementById('c-dh')?.value)||0.1;
+  const D   = parseFloat(document.getElementById('c-D')?.value)||41;
+  const Q   = (dh * A_t) / t;   // Q = (Δh * A_tanque) / t
+  // Update displayed Q
+  const qEl = document.getElementById('c-Q');
+  if(qEl) qEl.value = Q.toFixed(6);
+  return {Q, K, A_t, t, dh, D};
+}
+
+function calcRow(h,K,Q,D){
+  const A_pipe=Math.PI*Math.pow(D/2000,2);
+  const fsq=document.getElementById('f-sqrth')?.value||'Math.sqrt(h)';
+  const fv= document.getElementById('f-v')?.value||'K * sqrtH';
+  let sqrtH=NaN,v=NaN;
+  try{ sqrtH=new Function('h','K','Q','D_tubo','A_pipe','return '+fsq)(h,K,Q,D,A_pipe); }catch(e){}
+  try{ v=new Function('h','sqrtH','K','Q','D_tubo','A_pipe','return '+fv)(h,sqrtH,K,Q,D,A_pipe); }catch(e){}
+  return {sqrtH,v};
+}
+
+function vmIntegral(){
+  const c=getConsts();
+  const R=c.D/2;
+  const valid=S.rows.filter(r=>r.r!==''&&r.h!=='');
+  if(valid.length<2)return NaN;
+  // Group by |r|, average symmetric velocities
+  const map={};
+  valid.forEach(row=>{
+    const rabs=Math.abs(parseFloat(row.r));
+    const {v}=calcRow(parseFloat(row.h),c.K,c.Q,c.D);
+    if(!isNaN(v)){if(!map[rabs])map[rabs]=[];map[rabs].push(v);}
+  });
+  const rs=Object.keys(map).map(Number).sort((a,b)=>a-b);
+  const vs=rs.map(r=>map[r].reduce((a,b)=>a+b,0)/map[r].length);
+  let integral=0;
+  for(let i=0;i<rs.length-1;i++){
+    const r1=rs[i],r2=rs[i+1],f1=vs[i]*r1,f2=vs[i+1]*r2;
+    integral+=(r2-r1)*(f1+f2)/2;
+  }
+  return R>0?(2/(R*R))*integral:NaN;
+}
+
+function recalc(){
+  const tbody=document.getElementById('exp-tbody');
+  if(!tbody)return;
+  const c=getConsts();
+  tbody.querySelectorAll('tr').forEach((tr,i)=>{
+    const ri=tr.querySelector('.ri');
+    const hi=tr.querySelector('.hi');
+    if(ri) S.rows[i].r=ri.value;
+    if(hi) S.rows[i].h=hi.value;
+    const h=parseFloat(S.rows[i].h);
+    const {sqrtH,v}=(S.rows[i].h===''||isNaN(h))?{sqrtH:NaN,v:NaN}:calcRow(h,c.K,c.Q,c.D);
+    tr.querySelector('.sqc').textContent=isNaN(sqrtH)?'—':sqrtH.toFixed(6);
+    tr.querySelector('.vc').textContent=isNaN(v)?'—':v.toFixed(6);
+  });
+  // Vm calculada = (49/60) * v do ensaio 4 (posição 'c', index 3)
+  const row4h = parseFloat(S.rows[3].h);
+  let vm1 = NaN;
+  if(!isNaN(row4h) && S.rows[3].h !== ''){
+    const {v: v4} = calcRow(row4h, c.K, c.Q, c.D);
+    if(!isNaN(v4)) vm1 = (49/60) * v4;
+  }
+  document.getElementById('vm-calc').textContent = isNaN(vm1) ? '—' : vm1.toFixed(6)+' m/s';
+
+  // Vm vazão = (Q * 4) / (π * D_tubo²)  [D in meters]
+  const {Q, D} = c;
+  const vm2 = (Q * 4) / (Math.PI * Math.pow(D * 1e-3, 2));  // D em mm → (D×10⁻³) em metros
+  document.getElementById('vm-vazao').textContent = isNaN(vm2) ? '—' : vm2.toFixed(6)+' m/s';
+  // update preview chart if open
+  if(document.getElementById('sw-graph')?.checked) updatePreviewChart();
+}
+
+function renderExpTable(){
+  const tbody=document.getElementById('exp-tbody');
+  tbody.innerHTML=S.rows.map((row,i)=>`
+    <tr class="${row.pos==='parede'?'wall-row':''}">
+      <td>${row.ensaio}</td>
+      <td>${row.pos}</td>
+      <td class="ec"><input type="number" class="ri" value="${row.r}" placeholder="—" oninput="recalc()"></td>
+      <td class="ec"><input type="number" class="hi" value="${row.h}" placeholder="—" oninput="recalc()"></td>
+      <td class="cc sqc">—</td>
+      <td class="cc vc">—</td>
+    </tr>`).join('');
+  recalc();
+}
+
+function toggleFormula(){
+  const b=document.getElementById('f-body');
+  const a=document.getElementById('f-arrow');
+  b.classList.toggle('open');
+  a.textContent=b.classList.contains('open')?'▾':'▸';
+}
+
+// ============================================================
+// CONCLUSION & GRAPH
+// ============================================================
+function togglePane(id,cb){
+  document.getElementById(id).classList.toggle('open',cb.checked);
+  if(id==='conc-body') S.inclConc=cb.checked;
+  if(id==='graph-body') S.inclGraph=cb.checked;
+}
+
+function addConc(){
+  const t=document.getElementById('conc-input').value.trim();
+  if(!t){notify('Digite o texto primeiro.');return;}
+  S.conclusions.push(t);
+  document.getElementById('conc-input').value='';
+  renderConcs();notify('✓ Conclusão adicionada!');
+}
+function renderConcs(){
+  const el=document.getElementById('conc-list');
+  if(!el)return;
+  el.innerHTML=S.conclusions.map((c,i)=>`
+    <div class="conc-item">
+      <div class="conc-text">${c}</div>
+      <div class="conc-acts">
+        <button class="btn btn-secondary btn-sm" onclick="editConc(${i})">Editar</button>
+        <button class="btn btn-danger" onclick="delConc(${i})">✕ Apagar</button>
+      </div>
+    </div>`).join('');
+}
+function editConc(i){
+  const t=prompt('Editar conclusão:',S.conclusions[i]);
+  if(t===null)return;
+  S.conclusions[i]=t.trim();renderConcs();
+}
+function delConc(i){S.conclusions.splice(i,1);renderConcs();}
+
+// Collect numeric table data
+const LABELS={r:'r (mm)',h:'h (mm)',sqrtH:'√h (m^½)',v:'v (m/s)'};
+function getPlotData(){
+  const c=getConsts();
+  return S.rows.map(row=>{
+    const h=parseFloat(row.h),r=parseFloat(row.r);
+    const {sqrtH,v}=(row.h===''||isNaN(h))?{sqrtH:null,v:null}:calcRow(h,c.K,c.Q,c.D);
+    return {ensaio:row.ensaio,pos:row.pos,
+      r:(!row.r||isNaN(r))?null:r,
+      h:(!row.h||isNaN(h))?null:h,
+      sqrtH,v};
+  });
+}
+
+function buildChartCfg(data,xk,yk,title,units){
+  const pts=data.filter(d=>d[xk]!==null&&d[yk]!==null);
+  const xu=LABELS[xk]+(units?` [${units}]`:'');
+  const yu=LABELS[yk]+(units?` [${units}]`:'');
+  return {
+    type:'scatter',
+    data:{datasets:[{
+      label:title,
+      data:pts.map(d=>({x:d[xk],y:d[yk]})),
+      borderColor:'#00c8ff',backgroundColor:'rgba(0,200,255,.18)',
+      pointRadius:6,pointHoverRadius:9,showLine:true,tension:.35,borderWidth:2,
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      plugins:{
+        title:{display:!!title,text:title,color:'#e8f4fc',font:{size:13,family:"'Syne',sans-serif"}},
+        legend:{display:false},
+      },
+      scales:{
+        x:{title:{display:true,text:xu,color:'#4a6a7f'},ticks:{color:'#4a6a7f'},grid:{color:'rgba(30,58,82,.5)'}},
+        y:{title:{display:true,text:yu,color:'#4a6a7f'},ticks:{color:'#4a6a7f'},grid:{color:'rgba(30,58,82,.5)'}},
+      }
+    }
+  };
+}
+
+function updatePreviewChart(){
+  const xk=document.getElementById('g-x')?.value||'r';
+  const yk=document.getElementById('g-y')?.value||'v';
+  const title=document.getElementById('g-title')?.value||'';
+  const units=document.getElementById('g-units')?.value||'';
+  S.gX=xk;S.gY=yk;S.gTitle=title;S.gUnits=units;
+  const data=getPlotData();
+  const pts=data.filter(d=>d[xk]!==null&&d[yk]!==null);
+  const emptyMsg=document.getElementById('chart-empty-msg');
+  const cv=document.getElementById('cv-prev');
+  if(pts.length<2){emptyMsg.style.display='block';cv.style.display='none';return;}
+  emptyMsg.style.display='none';cv.style.display='block';
+  if(chartPrev){chartPrev.destroy();chartPrev=null;}
+  chartPrev=new Chart(cv.getContext('2d'),buildChartCfg(data,xk,yk,title,units));
+}
+
+// ============================================================
+// REVIEW
+// ============================================================
+function renderReview(){
+  // Members
+  const rm=document.getElementById('rev-members');
+  rm.innerHTML=S.members.length?`
+    <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.8rem">
+    ${S.members.map(m=>`<tr>
+      <td style="padding:.38rem .7rem;border-bottom:1px solid var(--border)">${m.name}</td>
+      <td style="padding:.38rem .7rem;border-bottom:1px solid var(--border);color:var(--accent)">${m.ra}</td>
+    </tr>`).join('')}</table>`:'<div class="empty-msg">Nenhum integrante.</div>';
+
+  // Table
+  const c=getConsts();
+  const pd=getPlotData();
+  document.getElementById('rev-table').innerHTML=`
+    <div style="overflow-x:auto">
+    <table class="review-table">
+      <thead><tr><th>Ensaio</th><th>Posição</th><th>r (mm)</th><th>h (mm)</th><th>√h (m^½)</th><th>v (m/s)</th></tr></thead>
+      <tbody>${pd.map(d=>`<tr class="${d.pos==='parede'?'wall-row':''}">
+        <td>${d.ensaio}</td><td>${d.pos}</td>
+        <td>${d.r!==null?d.r:'—'}</td>
+        <td>${d.h!==null?d.h:'—'}</td>
+        <td>${d.sqrtH!==null?d.sqrtH.toFixed(6):'—'}</td>
+        <td>${d.v!==null?d.v.toFixed(6):'—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    </div>
+    <div class="vm-display">
+      V<sub>m</sub>(calculada): <span>${document.getElementById('vm-calc').textContent}</span>
+      &nbsp;&nbsp;V<sub>m</sub>(vazão): <span>${document.getElementById('vm-vazao').textContent}</span>
+    </div>`;
+
+  // Conclusion
+  const cc=document.getElementById('rev-conc-card');
+  const rc=document.getElementById('rev-conc');
+  if(S.inclConc&&S.conclusions.length){
+    cc.style.display='block';
+    rc.innerHTML=S.conclusions.map(c=>`<p style="margin-bottom:.7rem;line-height:1.7;font-size:.88rem">${c}</p>`).join('');
+  } else cc.style.display='none';
+
+  // Graph
+  const gc=document.getElementById('rev-graph-card');
+  if(S.inclGraph){
+    gc.style.display='block';
+    setTimeout(()=>{
+      if(chartRev){chartRev.destroy();chartRev=null;}
+      const cv=document.getElementById('cv-review');
+      const data=getPlotData().filter(d=>d[S.gX]!==null&&d[S.gY]!==null);
+      if(data.length>=2) chartRev=new Chart(cv.getContext('2d'),buildChartCfg(getPlotData(),S.gX,S.gY,S.gTitle,S.gUnits));
+    },100);
+  } else gc.style.display='none';
+}
+
+// ============================================================
+// PDF DOWNLOAD
+// ============================================================
+async function downloadPDF(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,M=18;
+  let y=M;
+
+  const nl=(n=5)=>{y+=n;};
+  const line=()=>{doc.setDrawColor(180,200,215);doc.line(M,y,W-M,y);nl(4);};
+
+  // --- Header ---
+  doc.setFillColor(7,13,20);doc.rect(0,0,W,42,'F');
+  doc.setFontSize(8);doc.setTextColor(74,106,127);
+  doc.text('MECÂNICA DOS FLUIDOS',W/2,15,{align:'center'});
+  doc.setFontSize(18);doc.setTextColor(0,200,255);
+  doc.text('Experimento 3',W/2,26,{align:'center'});
+  y=46;doc.setTextColor(20,20,20);
+
+  // --- Members ---
+  doc.setFontSize(11);doc.setFont(undefined,'bold');doc.setTextColor(0,100,140);
+  doc.text('Integrantes do Grupo',M,y);doc.setFont(undefined,'normal');nl(5);line();
+  S.members.forEach(m=>{
+    doc.setFontSize(8.5);doc.setTextColor(30,30,30);doc.text(m.name,M,y);
+    doc.setTextColor(0,100,140);doc.text('RA: '+m.ra,W-M,y,{align:'right'});
+    doc.setTextColor(30,30,30);nl(5.5);
+  });
+  nl(3);
+
+  // --- Table ---
+  if(y>230){doc.addPage();y=M;}
+  doc.setFont(undefined,'bold');doc.setFontSize(11);doc.setTextColor(0,100,140);
+  doc.text('Dados do Experimento',M,y);doc.setFont(undefined,'normal');nl(5);line();
+
+  const cols=[{lbl:'Ensaio',w:16},{lbl:'Posição',w:22},{lbl:'r (mm)',w:24},{lbl:'h (mm)',w:24},{lbl:'√h (m^½)',w:30},{lbl:'v (m/s)',w:30}];
+  const tw=cols.reduce((a,c)=>a+c.w,0);
+
+  // table header
+  doc.setFillColor(7,13,20);doc.rect(M,y,tw,8,'F');
+  doc.setFontSize(7);doc.setTextColor(0,200,255);
+  let cx=M;
+  cols.forEach(c=>{doc.text(c.lbl,cx+c.w/2,y+5.3,{align:'center'});cx+=c.w;});
+  nl(9);
+
+  const pd=getPlotData();
+  pd.forEach((d,idx)=>{
+    if(y>268){doc.addPage();y=M;}
+    if(idx%2===0){doc.setFillColor(238,247,255);doc.rect(M,y-1,tw,7,'F');}
+    doc.setFontSize(7.5);doc.setTextColor(20,20,20);
+    cx=M;
+    const vs=[d.ensaio,d.pos,d.r??'—',d.h??'—',d.sqrtH!==null?d.sqrtH.toFixed(4):'—',d.v!==null?d.v.toFixed(4):'—'];
+    vs.forEach((v,i)=>{doc.text(String(v),cx+cols[i].w/2,y+4,{align:'center'});cx+=cols[i].w;});
+    nl(7);
+  });
+  nl(3);
+  doc.setFontSize(8.5);doc.setTextColor(30,30,30);
+  doc.text('Vm(calculada) = '+document.getElementById('vm-calc').textContent,M,y);nl(5.5);
+  doc.text('Vm(vazão) = '+document.getElementById('vm-vazao').textContent,M,y);nl(8);
+
+  // --- Constants ---
+  if(y>240){doc.addPage();y=M;}
+  doc.setFont(undefined,'bold');doc.setFontSize(10);doc.setTextColor(0,100,140);
+  doc.text('Constantes',M,y);doc.setFont(undefined,'normal');nl(5);line();
+  const c2=getConsts();
+  const cpairs=[['Q',c2.Q+' m³/s'],['K',c2.K+' (constante)'],['A_tanque',c2.A_t+' m²'],
+    ['t',c2.t+' s'],['Δh',c2.dh+' m'],['D_tubo',c2.D+' mm']];
+  doc.setFontSize(8);doc.setTextColor(30,30,30);
+  cpairs.forEach(([k,v])=>{doc.text(k+': '+v,M,y);nl(5.2);});
+  nl(5);
+
+  // --- Conclusion ---
+  if(S.inclConc&&S.conclusions.length){
+    if(y>240){doc.addPage();y=M;}
+    doc.setFont(undefined,'bold');doc.setFontSize(11);doc.setTextColor(0,100,140);
+    doc.text('Conclusão',M,y);doc.setFont(undefined,'normal');nl(5);line();
+    doc.setFontSize(8.5);doc.setTextColor(30,30,30);
+    S.conclusions.forEach(cl=>{
+      const lns=doc.splitTextToSize(cl,W-2*M);
+      lns.forEach(ln=>{if(y>272){doc.addPage();y=M;}doc.text(ln,M,y);nl(5.2);});
+      nl(2);
+    });
+  }
+
+  // --- Graph ---
+  if(S.inclGraph){
+    doc.addPage();y=M;
+    doc.setFont(undefined,'bold');doc.setFontSize(11);doc.setTextColor(0,100,140);
+    doc.text('Gráfico: '+S.gTitle,M,y);doc.setFont(undefined,'normal');nl(5);line();
+    try{
+      // Render chart onto an offscreen canvas with white background for clean PDF export
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = 900; offCanvas.height = 480;
+      const offCtx = offCanvas.getContext('2d');
+      offCtx.fillStyle = '#ffffff';
+      offCtx.fillRect(0,0,offCanvas.width,offCanvas.height);
+      const plotData = getPlotData();
+      const xu = (LABELS[S.gX]||S.gX)+(S.gUnits?' ['+S.gUnits+']':'');
+      const yu = (LABELS[S.gY]||S.gY)+(S.gUnits?' ['+S.gUnits+']':'');
+      const pts = plotData.filter(d=>d[S.gX]!==null&&d[S.gY]!==null);
+      const tempChart = new Chart(offCtx,{
+        type:'scatter',
+        data:{datasets:[{
+          label:S.gTitle,
+          data:pts.map(d=>({x:d[S.gX],y:d[S.gY]})),
+          borderColor:'#0050a0',backgroundColor:'rgba(0,80,160,0.15)',
+          pointRadius:7,pointHoverRadius:9,showLine:true,tension:.35,borderWidth:2.5,
+        }]},
+        options:{
+          animation:false,responsive:false,
+          plugins:{
+            title:{display:!!S.gTitle,text:S.gTitle,color:'#111',font:{size:18,weight:'bold',family:'Arial'}},
+            legend:{display:false},
+          },
+          scales:{
+            x:{title:{display:true,text:xu,color:'#333',font:{size:14,family:'Arial'}},
+               ticks:{color:'#333',font:{size:12}},grid:{color:'rgba(0,0,0,.12)'},
+               border:{color:'#999'}},
+            y:{title:{display:true,text:yu,color:'#333',font:{size:14,family:'Arial'}},
+               ticks:{color:'#333',font:{size:12}},grid:{color:'rgba(0,0,0,.12)'},
+               border:{color:'#999'}},
+          }
+        }
+      });
+      const imgData = offCanvas.toDataURL('image/png');
+      tempChart.destroy();
+      const maxW=W-2*M, maxH=120;
+      doc.addImage(imgData,'PNG',M,y,maxW,maxH);
+      y+=maxH+5;
+    }catch(e){doc.setFontSize(8);doc.setTextColor(80,80,80);doc.text('[Gráfico não disponível: '+e.message+']',M,y);}
+  }
+
+  // --- Footer ---
+  const np=doc.internal.getNumberOfPages();
+  for(let i=1;i<=np;i++){
+    doc.setPage(i);doc.setFontSize(6.5);doc.setTextColor(74,106,127);
+    doc.text('Experimento 3 — Mecânica dos Fluidos',W/2,292,{align:'center'});
+    doc.text(String(i)+'/'+np,M,292);
+  }
+
+  doc.save('experimento3_mecflu.pdf');
+  notify('✓ PDF gerado com sucesso!');
+}
+
+// ============================================================
+// EXCEL DOWNLOAD
+// ============================================================
+function downloadExcel(){
+  const wb=XLSX.utils.book_new();
+  const pd=getPlotData();
+  const c=getConsts();
+
+  // Sheet 1: Members
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Nome','RA'],
+    ...S.members.map(m=>[m.name,m.ra])
+  ]),'Integrantes');
+
+  // Sheet 2: Experiment data
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Experimento 3 — Mecânica dos Fluidos'],[''],
+    ['Ensaio','Posição','r (mm)','h (mm)','√h (m^½)','v (m/s)'],
+    ...pd.map(d=>[d.ensaio,d.pos,d.r??'',d.h??'',
+      d.sqrtH!==null?parseFloat(d.sqrtH.toFixed(6)):'',
+      d.v!==null?parseFloat(d.v.toFixed(6)):'']),
+    [''],
+    ['Vm calculada',document.getElementById('vm-calc').textContent],
+    ['Vm vazão',document.getElementById('vm-vazao').textContent],
+    [''],
+    ['Constantes'],
+    ['Q (m³/s)',c.Q],['K',c.K],['A_tanque (m²)',c.A_t],
+    ['t (s)',c.t],['Δh (m)',c.dh],['D_tubo (mm)',c.D],
+  ]),'Experimento');
+
+  // Sheet 3: Conclusion
+  if(S.inclConc&&S.conclusions.length){
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+      ['Conclusão'],[''],
+      ...S.conclusions.map((cl,i)=>[i+1,cl])
+    ]),'Conclusão');
+  }
+
+  XLSX.writeFile(wb,'experimento3_mecflu.xlsx');
+  notify('✓ Excel gerado com sucesso!');
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+let notifTimer=null;
+function notify(msg){
+  const el=document.getElementById('notif');
+  el.textContent=msg;el.style.display='block';
+  el.style.animation='none';void el.offsetWidth;
+  el.style.animation='popIn .3s ease forwards';
+  clearTimeout(notifTimer);
+  notifTimer=setTimeout(()=>el.style.display='none',2600);
+}
+</script>
+</body>
+</html>
