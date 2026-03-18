@@ -7,7 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
   --bg:#070d14; --surface:#0d1825; --surface2:#122030;
@@ -58,6 +57,9 @@ textarea.form-input{resize:vertical;min-height:90px;font-family:var(--ui);font-s
 .li-link{display:inline-flex;align-items:center;gap:.5rem;color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:.72rem;letter-spacing:.09em;transition:color .2s}
 .li-link:hover{color:#33d4ff}
 .li-link svg{flex-shrink:0}
+.li-btn{display:inline-flex;align-items:center;gap:.55rem;color:var(--bg);background:var(--accent);text-decoration:none;font-family:var(--ui);font-size:.85rem;font-weight:700;letter-spacing:.04em;padding:.65rem 1.3rem;border-radius:9px;transition:all .25s;box-shadow:0 0 18px rgba(0,200,255,.35)}
+.li-btn:hover{background:#33d4ff;box-shadow:0 0 32px rgba(0,200,255,.6);transform:translateY(-2px)}
+.li-btn svg{flex-shrink:0}
 
 /* ===== APP SHELL ===== */
 .app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:.9rem 1.8rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
@@ -161,7 +163,7 @@ textarea.form-input{resize:vertical;min-height:90px;font-family:var(--ui);font-s
 .dl-tag{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:.9rem}
 .dl-title{font-size:2.2rem;font-weight:800;line-height:1.15;margin-bottom:.45rem}
 .dl-sub{font-family:var(--mono);font-size:.75rem;color:var(--muted);margin-bottom:2.5rem}
-.dl-cards{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:2.8rem}
+.dl-cards{display:grid;grid-template-columns:1fr;max-width:260px;margin:0 auto 2.8rem;gap:1.2rem}
 @media(max-width:440px){.dl-cards{grid-template-columns:1fr}}
 .dl-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:2rem 1.4rem;cursor:pointer;transition:all .3s;display:flex;flex-direction:column;align-items:center;gap:.9rem}
 .dl-card:hover{border-color:var(--accent);box-shadow:0 0 32px rgba(0,200,255,.12);transform:translateY(-3px)}
@@ -202,9 +204,10 @@ textarea.form-input{resize:vertical;min-height:90px;font-family:var(--ui);font-s
     </div>
     <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Entrar →</button>
     <div class="login-link-row">
-      <a href="https://www.linkedin.com/in/rflmendes" target="_blank" class="li-link">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
-        LinkedIn do criador
+      <a href="https://www.linkedin.com/in/rflmendes" target="_blank" class="li-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+        <span>LinkedIn do criador</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
       </a>
     </div>
   </div>
@@ -263,7 +266,7 @@ textarea.form-input{resize:vertical;min-height:90px;font-family:var(--ui);font-s
               <tr>
                 <th>Ensaio</th><th>Posição</th>
                 <th>r (mm)</th><th>h (mm)</th>
-                <th>√h (m^½)</th><th>v (m/s)</th>
+                <th>&radic;h (m^½)</th><th>v (m/s)</th>
               </tr>
             </thead>
             <tbody id="exp-tbody"></tbody>
@@ -279,7 +282,7 @@ textarea.form-input{resize:vertical;min-height:90px;font-family:var(--ui);font-s
           </div>
           <div class="formula-bdy" id="f-body">
             <div class="fi">
-              <label>√h</label>
+              <label>&radic;h</label>
               <input id="f-sqrth" type="text" value="Math.sqrt(h)" oninput="recalc()">
               <div class="hint">Variáveis: h, K, Q, D_tubo, A_pipe</div>
             </div>
@@ -296,7 +299,7 @@ textarea.form-input{resize:vertical;min-height:90px;font-family:var(--ui);font-s
             <div class="fi">
               <label>V<sub>m</sub> vazão</label>
               <input id="f-vmvaz" type="text" value="(Q * 4) / (π × D²)" readonly style="opacity:.5;cursor:not-allowed">
-              <div class="hint">Fixo: Q = (Δh × A_tanque) / t &nbsp;|&nbsp; Vm = (Q×4)/(π×D²)</div>
+              <div class="hint">Fixo: Q = (&Delta;h × A_tanque) / t &nbsp;|&nbsp; Vm = (Q×4)/(π×D²)</div>
             </div>
           </div>
         </div>
@@ -309,7 +312,7 @@ textarea.form-input{resize:vertical;min-height:90px;font-family:var(--ui);font-s
           <div class="const-row"><span class="ck">K</span><span class="cv"><input id="c-K" type="number" value="4.427189" step="0.0001" oninput="recalc()"></span><span class="cu">const.</span></div>
           <div class="const-row"><span class="ck">A<sub>tanque</sub></span><span class="cv"><input id="c-At" type="number" value="0.546" step="0.001" oninput="recalc()"></span><span class="cu">m²</span></div>
           <div class="const-row"><span class="ck">t</span><span class="cv"><input id="c-t" type="number" value="19.56" step="0.01" oninput="recalc()"></span><span class="cu">s</span></div>
-          <div class="const-row"><span class="ck">Δh</span><span class="cv"><input id="c-dh" type="number" value="0.1" step="0.01" oninput="recalc()"></span><span class="cu">m</span></div>
+          <div class="const-row"><span class="ck">&Delta;h</span><span class="cv"><input id="c-dh" type="number" value="0.1" step="0.01" oninput="recalc()"></span><span class="cu">m</span></div>
           <div class="const-row"><span class="ck">D<sub>tubo</sub></span><span class="cv"><input id="c-D" type="number" value="41" step="0.1" oninput="recalc()"></span><span class="cu">mm</span></div>
         </div>
       </div>
@@ -368,7 +371,7 @@ textarea.form-input{resize:vertical;min-height:90px;font-family:var(--ui);font-s
             <select id="g-x" class="form-select" onchange="updatePreviewChart()">
               <option value="r">r (mm)</option>
               <option value="h">h (mm)</option>
-              <option value="sqrtH">√h (m^½)</option>
+              <option value="sqrtH">&radic;h (m^½)</option>
               <option value="v">v (m/s)</option>
             </select>
           </div>
@@ -377,7 +380,7 @@ textarea.form-input{resize:vertical;min-height:90px;font-family:var(--ui);font-s
             <select id="g-y" class="form-select" onchange="updatePreviewChart()">
               <option value="v">v (m/s)</option>
               <option value="h">h (mm)</option>
-              <option value="sqrtH">√h (m^½)</option>
+              <option value="sqrtH">&radic;h (m^½)</option>
               <option value="r">r (mm)</option>
             </select>
           </div>
@@ -462,11 +465,7 @@ textarea.form-input{resize:vertical;min-height:90px;font-family:var(--ui);font-s
         <div class="dl-lbl">PDF</div>
         <div class="dl-s">Relatório completo</div>
       </div>
-      <div class="dl-card" onclick="downloadExcel()">
-        <div class="dl-icon">📊</div>
-        <div class="dl-lbl">Excel</div>
-        <div class="dl-s">Planilha de dados</div>
-      </div>
+
     </div>
     <div class="dl-footer">
       <p>Desenvolvido por</p>
@@ -964,47 +963,6 @@ async function downloadPDF(){
   notify('✓ PDF gerado com sucesso!');
 }
 
-// ============================================================
-// EXCEL DOWNLOAD
-// ============================================================
-function downloadExcel(){
-  const wb=XLSX.utils.book_new();
-  const pd=getPlotData();
-  const c=getConsts();
-
-  // Sheet 1: Members
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
-    ['Nome','RA'],
-    ...S.members.map(m=>[m.name,m.ra])
-  ]),'Integrantes');
-
-  // Sheet 2: Experiment data
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
-    ['Experimento 3 — Mecânica dos Fluidos'],[''],
-    ['Ensaio','Posição','r (mm)','h (mm)','√h (m^½)','v (m/s)'],
-    ...pd.map(d=>[d.ensaio,d.pos,d.r??'',d.h??'',
-      d.sqrtH!==null?parseFloat(d.sqrtH.toFixed(6)):'',
-      d.v!==null?parseFloat(d.v.toFixed(6)):'']),
-    [''],
-    ['Vm calculada',document.getElementById('vm-calc').textContent],
-    ['Vm vazão',document.getElementById('vm-vazao').textContent],
-    [''],
-    ['Constantes'],
-    ['Q (m³/s)',c.Q],['K',c.K],['A_tanque (m²)',c.A_t],
-    ['t (s)',c.t],['Δh (m)',c.dh],['D_tubo (mm)',c.D],
-  ]),'Experimento');
-
-  // Sheet 3: Conclusion
-  if(S.inclConc&&S.conclusions.length){
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
-      ['Conclusão'],[''],
-      ...S.conclusions.map((cl,i)=>[i+1,cl])
-    ]),'Conclusão');
-  }
-
-  XLSX.writeFile(wb,'experimento3_mecflu.xlsx');
-  notify('✓ Excel gerado com sucesso!');
-}
 
 // ============================================================
 // UTILS
